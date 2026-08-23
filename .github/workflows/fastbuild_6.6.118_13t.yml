@@ -6,7 +6,7 @@ env:
   KERNEL_VERSION: '6.6'
   SUB_VERSION: '118'
   KERNEL_NAME: 'android15-8-g29d86c5fc9dd-abogki428889875-4k'
-  CCACHE_KEY: ccache-ecsv4-6.6.118
+  CCACHE_KEY: ccache-ecsv4-6.6.118-13t
 
 on:
   workflow_dispatch:
@@ -199,20 +199,21 @@ jobs:
             exit 0
           fi
           
-          echo "未命中缓存，尝试拉取最新公共 ccache ..."
+          echo "未命中缓存，尝试拉取公共 ccache ..."
           mkdir -p ${{ env.CCACHE_DIR }}
+          # 13t 使用独立缓存，不混用 cctv18 的 13 设备公共缓存（缓存污染会导致内核不完整、不开机）
           if [[ "${{ github.event.inputs.droidspaces_enable }}" != "false" ]]; then
-            FILE_NAME="ccache-${{ env.KERNEL_VERSION }}.${{ env.SUB_VERSION }}-Droidspaces.tar.zst"
+            FILE_NAME="ccache-${{ env.KERNEL_VERSION }}.${{ env.SUB_VERSION }}-13t-Droidspaces.tar.zst"
           else
-            FILE_NAME="ccache-${{ env.KERNEL_VERSION }}.${{ env.SUB_VERSION }}.tar.zst"
+            FILE_NAME="ccache-${{ env.KERNEL_VERSION }}.${{ env.SUB_VERSION }}-13t.tar.zst"
           fi
           
-          if gh release download -p "$FILE_NAME" -R cctv18/public_ccache; then
+          if gh release download -p "$FILE_NAME" -R ${{ github.repository }}; then
             echo "成功下载 $FILE_NAME，正在解压..."
             tar -I zstd -xf "$FILE_NAME" -C ${{ env.CCACHE_DIR }}
             echo "公共 ccache 恢复完成！"
           else
-            echo "公共 ccache 中未找到对应的 ccache 文件，将进行全量全新编译..."
+            echo "未找到 13t 独立 ccache 缓存，将进行全量全新编译（避免使用 13 缓存导致污染）..."
           fi
 
       - name: 清除旧 ccache 缓存
