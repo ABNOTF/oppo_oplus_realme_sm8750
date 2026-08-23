@@ -65,6 +65,11 @@ on:
         required: true
         type: boolean
         default: 'false'
+      binfmt_ns_enable:
+        description: '是否启用binfmt_misc命名空间隔离(6.7 backport, 容器内注册不污染宿主机)'
+        required: true
+        type: boolean
+        default: 'false'
       adios_enable:
         description: '是否启用ADIOS IO调度器支持(提升IO读写性能)'
         required: true
@@ -513,6 +518,7 @@ jobs:
           fi
 
       - name: 启用 binfmt_misc 命名空间隔离(6.7 backport)
+        if: inputs.binfmt_ns_enable
         run: |
           echo "正在应用 binfmt_misc 命名空间隔离补丁(6.7 backport, 容器内注册不污染宿主机)..."
           cd kernel_workspace/common
