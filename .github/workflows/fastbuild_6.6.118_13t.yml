@@ -179,43 +179,6 @@ jobs:
           fi
           echo "CCACHE_REAL_KEY=$CCACHE_REAL_KEY" >> $GITHUB_ENV
 
-      - name: 载入当前版本内核的 ccache缓存
-        uses: actions/cache@v5
-        id: ccache-restore
-        with:
-          path: ${{ env.CCACHE_DIR }}
-          key: ${{ env.CCACHE_REAL_KEY }}-${{ runner.os }}-${{ github.ref_name }}
-          restore-keys: |
-            ${{ env.CCACHE_REAL_KEY }}-${{ runner.os }}-
-            ${{ env.CCACHE_REAL_KEY }}-
-
-      - name: 拉取公共预置 ccache 缓存
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          echo "检查本地缓存状态..."
-          if [ -d "${{ env.CCACHE_DIR }}" ] && [ "$(ls -A ${{ env.CCACHE_DIR }} 2>/dev/null)" ]; then
-            echo "检测到本地已成功载入 ccache 缓存，跳过公共 ccache 拉取！"
-            exit 0
-          fi
-          
-          echo "未命中缓存，尝试拉取公共 ccache ..."
-          mkdir -p ${{ env.CCACHE_DIR }}
-          # 13t 使用独立缓存，不混用 cctv18 的 13 设备公共缓存（缓存污染会导致内核不完整、不开机）
-          if [[ "${{ github.event.inputs.droidspaces_enable }}" != "false" ]]; then
-            FILE_NAME="ccache-${{ env.KERNEL_VERSION }}.${{ env.SUB_VERSION }}-13t-Droidspaces.tar.zst"
-          else
-            FILE_NAME="ccache-${{ env.KERNEL_VERSION }}.${{ env.SUB_VERSION }}-13t.tar.zst"
-          fi
-          
-          if gh release download -p "$FILE_NAME" -R ${{ github.repository }}; then
-            echo "成功下载 $FILE_NAME，正在解压..."
-            tar -I zstd -xf "$FILE_NAME" -C ${{ env.CCACHE_DIR }}
-            echo "公共 ccache 恢复完成！"
-          else
-            echo "未找到 13t 独立 ccache 缓存，将进行全量全新编译（避免使用 13 缓存导致污染）..."
-          fi
-
       - name: 清除旧 ccache 缓存
         if: inputs.ccache_update
         env:
