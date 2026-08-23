@@ -463,3 +463,47 @@ index 884d581fd..7e2009639 100644
  } __randomize_layout;
  
  struct ucounts {
+
+diff --git a/kernel/user.c b/kernel/user.c
+--- a/kernel/user.c
++++ b/kernel/user.c
+@@ -18,8 +18,18 @@
+ #include <linux/interrupt.h>
+ #include <linux/export.h>
+ #include <linux/user_namespace.h>
++#include <linux/binfmts.h>
+ #include <linux/proc_ns.h>
+ 
++#if IS_ENABLED(CONFIG_BINFMT_MISC)
++struct binfmt_misc init_binfmt_misc = {
++	.entries = LIST_HEAD_INIT(init_binfmt_misc.entries),
++	.enabled = true,
++	.entries_lock = __RW_LOCK_UNLOCKED(init_binfmt_misc.entries_lock),
++};
++EXPORT_SYMBOL_GPL(init_binfmt_misc);
++#endif
++
+ /*
+  * userns count is 1 for root user, 1 for init_uts_ns,
+  * and 1 for... ?
+@@ -67,6 +77,9 @@ struct user_namespace init_user_ns = {
+ 	.keyring_name_list = LIST_HEAD_INIT(init_user_ns.keyring_name_list),
+ 	.keyring_sem = __RWSEM_INITIALIZER(init_user_ns.keyring_sem),
+ #endif
++#if IS_ENABLED(CONFIG_BINFMT_MISC)
++	.binfmt_misc = &init_binfmt_misc,
++#endif
+ };
+ EXPORT_SYMBOL_GPL(init_user_ns);
+ 
+diff --git a/kernel/user_namespace.c b/kernel/user_namespace.c
+--- a/kernel/user_namespace.c
++++ b/kernel/user_namespace.c
+@@ -213,6 +213,9 @@ static void free_user_ns(struct work_struct *work)
+ 			kfree(ns->projid_map.forward);
+ 			kfree(ns->projid_map.reverse);
+ 		}
++#if IS_ENABLED(CONFIG_BINFMT_MISC)
++		kfree(ns->binfmt_misc);
++#endif
+ 		retire_userns_sysctls(ns);
