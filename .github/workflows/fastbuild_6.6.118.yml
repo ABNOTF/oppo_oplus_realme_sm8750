@@ -70,6 +70,11 @@ on:
         required: true
         type: boolean
         default: 'false'
+      landlock_enable:
+        description: '是否启用Landlock沙箱(Archlinuxarm等容器使用, 提供文件访问隔离)'
+        required: true
+        type: boolean
+        default: 'false'
       adios_enable:
         description: '是否启用ADIOS IO调度器支持(提升IO读写性能)'
         required: true
@@ -526,6 +531,24 @@ jobs:
           patch -p1 -F 3 < binfmt_misc_namespace_6.7_backport.patch || true
           # 确认补丁生效
           grep -q "load_binfmt_misc" fs/binfmt_misc.c && echo "binfmt_misc 命名空间隔离已启用" || echo "警告: binfmt 补丁可能未完全生效"
+
+      - name: 启用 Landlock 沙箱支持
+        if: inputs.landlock_enable
+        run: |
+          echo "正在启用 Landlock 沙箱支持(Archlinuxarm等容器使用)..."
+          cd kernel_workspace/common
+          echo "CONFIG_SECURITY_LANDLOCK=y" >> ./arch/arm64/configs/gki_defconfig
+          echo "CONFIG_SECURITY_PATH=y" >> ./arch/arm64/configs/gki_defconfig
+          echo "CONFIG_SECURITY=y" >> ./arch/arm64/configs/gki_defconfig
+          echo "CONFIG_SECURITYFS=y" >> ./arch/arm64/configs/gki_defconfig
+          # 将 landlock 加入 LSM 列表(默认不含, 光开CONFIG不生效)
+          if ! grep -q "CONFIG_LSM=" ./arch/arm64/configs/gki_defconfig; then
+            echo 'CONFIG_LSM="landlock,lockdown,yama,loadpin,safesetid,integrity,selinux,bpf"' >> ./arch/arm64/configs/gki_defconfig
+          else
+            sed -i 's/^CONFIG_LSM=.*/CONFIG_LSM="landlock,lockdown,yama,loadpin,safesetid,integrity,selinux,bpf"/' ./arch/arm64/configs/gki_defconfig
+          fi
+          # 确认
+          grep -q "CONFIG_SECURITY_LANDLOCK=y" ./arch/arm64/configs/gki_defconfig && echo "Landlock 已启用" || echo "警告: Landlock 配置可能未生效"
 
       - name: 启用ADIOS IO调度器
         if: inputs.adios_enable
