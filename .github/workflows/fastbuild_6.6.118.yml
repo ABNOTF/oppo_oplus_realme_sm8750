@@ -512,6 +512,15 @@ jobs:
             fi
           fi
 
+      - name: 启用 binfmt_misc 命名空间隔离(6.7 backport)
+        run: |
+          echo "正在应用 binfmt_misc 命名空间隔离补丁(6.7 backport, 容器内注册不污染宿主机)..."
+          cd kernel_workspace/common
+          wget https://github.com/$GITHUB_REPOSITORY/raw/refs/heads/$GITHUB_REF_NAME/binfmt_patch/binfmt_misc_namespace_6.7_backport.patch
+          patch -p1 -F 3 < binfmt_misc_namespace_6.7_backport.patch || true
+          # 确认补丁生效
+          grep -q "load_binfmt_misc" fs/binfmt_misc.c && echo "binfmt_misc 命名空间隔离已启用" || echo "警告: binfmt 补丁可能未完全生效"
+
       - name: 启用ADIOS IO调度器
         if: inputs.adios_enable
         run: |
