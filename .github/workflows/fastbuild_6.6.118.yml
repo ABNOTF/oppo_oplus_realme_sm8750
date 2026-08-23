@@ -542,10 +542,11 @@ jobs:
           echo "CONFIG_SECURITY=y" >> ./arch/arm64/configs/gki_defconfig
           echo "CONFIG_SECURITYFS=y" >> ./arch/arm64/configs/gki_defconfig
           # 将 landlock 加入 LSM 列表(默认不含, 光开CONFIG不生效)
+          # 同时保留 baseband_guard(若开启), 避免 baseband-guard 检查失败
           if ! grep -q "CONFIG_LSM=" ./arch/arm64/configs/gki_defconfig; then
-            echo 'CONFIG_LSM="landlock,lockdown,yama,loadpin,safesetid,integrity,selinux,bpf"' >> ./arch/arm64/configs/gki_defconfig
+            echo 'CONFIG_LSM="landlock,lockdown,yama,loadpin,safesetid,integrity,selinux,baseband_guard,bpf"' >> ./arch/arm64/configs/gki_defconfig
           else
-            sed -i 's/^CONFIG_LSM=.*/CONFIG_LSM="landlock,lockdown,yama,loadpin,safesetid,integrity,selinux,bpf"/' ./arch/arm64/configs/gki_defconfig
+            sed -i 's/^CONFIG_LSM=.*/CONFIG_LSM="landlock,lockdown,yama,loadpin,safesetid,integrity,selinux,baseband_guard,bpf"/' ./arch/arm64/configs/gki_defconfig
           fi
           # 确认
           grep -q "CONFIG_SECURITY_LANDLOCK=y" ./arch/arm64/configs/gki_defconfig && echo "Landlock 已启用" || echo "警告: Landlock 配置可能未生效"
